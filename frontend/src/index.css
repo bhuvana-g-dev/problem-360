@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply bg-surface text-ink font-sans antialiased; }
+  h1, h2, h3, h4 { @apply font-heading font-semibold tracking-tight; }
+  :focus-visible { @apply outline-none ring-2 ring-info ring-offset-2 ring-offset-surface; }
+}

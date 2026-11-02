@@ -1,0 +1,16 @@
+{"title": "Problem 360", "subtitle": "EDIT ME: one line on who it helps (Madurai residents reporting civic hazards in Tamil or English)",
+ "tags": ["#strands-agents", "#social-good"],
+ "closing": "EDIT ME: what you learned, in one line",
+ "scenes": [
+  {"title": "An ordinary report", "caption": "Strands Decider + code decide the facts; the planner writes the reply; the critic checks it.",
+   "input": "The street lights in our lane have not worked for a week and it is very dark at night.",
+   "command": "python -m agent.app \"The street lights in our lane have not worked for a week and it is very dark at night.\" --category \"Street lighting\" --locality \"KK Nagar\""},
+  {"title": "A report in Tamil", "caption": "Same pipeline, reply in Tamil (Amazon Translate only if the model slips into English).",
+   "input": "சிக்னல் அருகே சாலையில் பெரிய பள்ளம் உள்ளது, வாகனங்கள் சிரமப்படுகின்றன",
+   "command": "python -m agent.app \"சிக்னல் அருகே சாலையில் பெரிய பள்ளம் உள்ளது, வாகனங்கள் சிரமப்படுகின்றன\" --category \"Roads & potholes\""},
+  {"title": "Danger: the hook stops the agents", "caption": "A Strands hook cancels every agent. Fixed text tells them to call 112. No model wrote it.",
+   "input": "Live wire hanging from the electric pole near the bus stop, sparking when it rains.",
+   "command": "python -m agent.app \"Live wire hanging from the electric pole near the bus stop, sparking when it rains.\" --category Electricity"},
+  {"title": "Too vague to act on", "caption": "Code forces a request for details instead of a guess.",
+   "input": "There is a problem here, please fix it soon",
+   "command": "python -m agent.app \"There is a problem here, please fix it soon\""}]}

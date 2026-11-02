@@ -1,0 +1,30 @@
+{
+  "version": "2026-11-02-draft",
+  "note": "The ONLY ids the agent may cite. Each item paraphrases its source. Before submitting, a person must open every source URL, check the paraphrase, and fill read_by / read_on (real name, ISO date). Department labels and Tamil text also need a local / fluent reader's check. Kiro drafted this file and did not count as a reader.",
+  "sources": {
+    "ERSS-112": {"title": "Emergency Response Support System (112 India), Ministry of Home Affairs, FAQ", "url": "https://112.gov.in/faq", "read_by": null, "read_on": null},
+    "TN-108": {"title": "Tamil Nadu 108 emergency ambulance service (EMRI Green Health Services, Tamil Nadu Health Systems Project)", "url": "https://www.tnhsp.org/", "read_by": null, "read_on": null},
+    "MDU-CORP": {"title": "Madurai Municipal Corporation (civic body for Madurai city): overview", "url": "https://en.wikipedia.org/wiki/Madurai_Municipal_Corporation", "read_by": null, "read_on": null},
+    "MDU-GRIEVANCE": {"title": "Times of India, 'Now, air your civic grievances on Smart Madurai app' (grievances routed to the assistant engineer, escalated after three days)", "url": "https://timesofindia.indiatimes.com/city/madurai/now-air-your-civic-grievances-on-smart-madurai-app/articleshow/125938066.cms", "read_by": null, "read_on": null},
+    "P360-POLICY": {"title": "Problem 360 safety policy, this repository (agent/knowledge.py, agent/enforce.py, agent/safety.py)", "url": "agent/knowledge.py", "read_by": null, "read_on": null}
+  },
+  "items": [
+    {"id": "G-EMERGENCY-112", "source": "ERSS-112", "text": "112 is India's single emergency number for police, fire and ambulance, reachable by call, SMS, panic button or the 112 India app."},
+    {"id": "G-AMBULANCE-108", "source": "TN-108", "text": "In Tamil Nadu, dial 108 for an emergency ambulance."},
+    {"id": "G-DEPT-roads", "source": "MDU-CORP", "text": "Potholes, damaged roads and broken footpaths in Madurai city are handled by the Madurai City Municipal Corporation (roads and engineering)."},
+    {"id": "G-DEPT-sanitation", "source": "MDU-CORP", "text": "Uncollected garbage, overflowing bins, dumping, dead animals and public toilets are handled by the Corporation's sanitation and solid waste wing."},
+    {"id": "G-DEPT-water_drainage", "source": "MDU-CORP", "text": "Drinking water supply, leaking pipes, blocked drains, sewage overflow and waterlogging are handled by the Corporation's water supply and drainage wing."},
+    {"id": "G-DEPT-street_lighting", "source": "MDU-CORP", "text": "Street lights that are off or flickering are handled by the Corporation's street lighting wing."},
+    {"id": "G-DEPT-electricity", "source": "P360-POLICY", "text": "Power cuts, fallen or sparking lines and transformer faults go to the state electricity distribution utility (label to be confirmed locally)."},
+    {"id": "G-DEPT-transport", "source": "P360-POLICY", "text": "Bus services, bus stops and traffic signals go to the public transport / transport authorities (label to be confirmed locally)."},
+    {"id": "G-DEPT-parks", "source": "MDU-CORP", "text": "Parks, playgrounds, public ponds and encroachment on public land are handled by the Corporation's parks and public spaces wing."},
+    {"id": "G-DEPT-police", "source": "P360-POLICY", "text": "Crime, harassment and safety threats that need police go to Madurai City Police; in an emergency call 112."},
+    {"id": "G-GRIEVANCE-ROUTING", "source": "MDU-GRIEVANCE", "text": "Madurai Corporation routes civic grievances to the area assistant engineer and escalates them if no action is taken within three days."},
+    {"id": "G-COMMUNITY-WASTE", "source": "P360-POLICY", "text": "Neighbours may organise a small clean-up with gloves and bags, but must never handle sharp, medical, chemical or dead-animal waste."},
+    {"id": "G-COMMUNITY-PARKS", "source": "P360-POLICY", "text": "Neighbours may organise a park clean-up or planting day together with the park's caretaker."},
+    {"id": "G-POLICY-NO-CONTACT", "source": "P360-POLICY", "text": "Problem 360 only recommends a department. It never contacts a department and never says it has."},
+    {"id": "G-POLICY-HUMAN-REVIEW", "source": "P360-POLICY", "text": "Urgent, duplicate and unclear reports are marked for a person to review before anything happens."},
+    {"id": "G-POLICY-DUPLICATE", "source": "P360-POLICY", "text": "A report that closely matches a recent nearby report of the same category is checked as a possible duplicate."},
+    {"id": "G-POLICY-VAGUE", "source": "P360-POLICY", "text": "A report that does not say what is wrong or where gets up to three short questions before it is routed."}
+  ]
+}

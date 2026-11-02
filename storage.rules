@@ -1,0 +1,9 @@
+rules_version = '2';
+// Media is uploaded and served only through the FastAPI backend (Admin SDK + signed URLs). Clients have no direct access.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
