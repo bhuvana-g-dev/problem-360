@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Users, CalendarDays, Megaphone, UserCog, Settings, LogOut, Lock } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarDays, Megaphone, UserCog, Settings, LogOut, Lock, HeartHandshake } from 'lucide-react'
 import Logo from '../ui/Logo.jsx'
 import { VerificationBadge } from '../ui/Badge.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -7,6 +7,7 @@ import { VERIFICATION } from '../../config/constants.js'
 
 const nav = [
   { to: '/org/dashboard', label: 'Overview', icon: LayoutDashboard, open: true },
+  { to: '/org/civic', label: 'Civic activity', icon: HeartHandshake },
   { to: '/org/groups', label: 'Volunteer groups', icon: Users },
   { to: '/org/events', label: 'Events', icon: CalendarDays },
   { to: '/org/updates', label: 'Updates', icon: Megaphone },

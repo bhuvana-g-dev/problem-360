@@ -9,7 +9,7 @@ from agent.engine import StrandsDeciderEngine
 from app.core import deps, security
 from app.main import app
 from app.services.media_service import MediaService
-from tests.fakes import FakeDecider, InMemoryDecisionRepo, InMemoryPostRepo, InMemoryStorage, ScriptedModel
+from tests.fakes import FakeDecider, InMemoryDecisionRepo, InMemoryPostRepo, InMemoryStorage, MemCommunity, ScriptedModel
 from tests.test_accounts import FakeRepo
 from app.services.account_service import AccountService
 
@@ -24,7 +24,7 @@ def make_env(monkeypatch, engine):
     svc = AccountService(accounts, lambda uid, c: None)
     app.dependency_overrides.update({
         security.get_service: lambda: svc, deps.get_post_repo: lambda: posts, deps.get_decision_repo: lambda: decisions,
-        deps.get_storage: lambda: storage, deps.get_engine: lambda: engine, deps.get_media_service: lambda: MediaService(storage, 1)})
+        deps.get_storage: lambda: storage, deps.get_engine: lambda: engine, deps.get_community_repo: lambda: MemCommunity(), deps.get_media_service: lambda: MediaService(storage, 1)})
     monkeypatch.setattr(security, "verify_token", lambda t: security.Principal(uid=t, email=f"{t}@x.in"))
     c = TestClient(app)
     for uid, name in (("cit1", "Ravi Kumar"), ("cit2", "Meena S")):

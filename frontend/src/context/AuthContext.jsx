@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
     signIn,
     registerCitizen: ({ email, password, ...rest }) => register('/api/auth/register/citizen', email, password, rest),
     registerOrganization: ({ email, password, ...rest }) => register('/api/auth/register/organization', email, password, rest),
+    joinOrganization: ({ email, password, ...rest }) => register('/api/auth/register/organization-member', email, password, rest),
     resetPassword: (email) => sendPasswordResetEmail(auth, email).catch((e) => { throw new Error(friendly(e)) }),
     signOut: () => fbSignOut(auth),
     retry: () => { setState((s) => ({ ...s, status: 'loading' })); loadAccount().catch(() => {}) },

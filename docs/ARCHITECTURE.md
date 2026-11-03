@@ -28,7 +28,8 @@ problem360/
 | `/org/login`, `/org/register` | public | organization auth |
 | `/app`, `/app/explore`, `/app/report/new`, `/app/my-reports`, `/app/groups`, `/app/notifications`, `/app/profile` | citizen | social-feed layout |
 | `/org/dashboard`, `/org/settings` | organization (any status) | workspace layout |
-| `/org/groups`, `/org/events`, `/org/updates`, `/org/members` | organization **Verified** | locked page otherwise |
+| `/org/civic`, `/org/groups`, `/org/events`, `/org/updates`, `/org/members` | organization **Verified** | locked page otherwise |
+| `/org/join?code=` | public | join an existing organization with an invite |
 | `/admin/*` | admin | Phase 6 |
 
 ## Account model
@@ -74,9 +75,20 @@ Media: `POST /api/media` validates content by magic bytes and size, stores under
 The agent does not analyse images; media is stored and shown only.
 
 ## Phase 4 — Strands Decider
+> Updated for the hackathon: the agent is now a planner → critic Strands graph with a red-flag hook that stops it on danger,
+> code-computed facts and fail-closed text. See `../DESIGN.md` and `../agent/README.md`; the list below is the original Phase 4 layout.
+
 - `agent/decider_client.py` — hosted Decider call with the kit's b09 contract (`noul` yes/no and `choice`). One call carries all four questions.
 - `agent/tools.py` — five `@tool`s bound to one report; every call is recorded.
 - `agent/engine.py` — real `strands.Agent` on Bedrock with `AgentChoice` structured output.
 - `agent/enforce.py` — code owns safety: danger → FLAG_URGENT, duplicate → CHECK_DUPLICATE, vague → REQUEST_MORE_INFORMATION, unsafe community idea → ROUTE; each change is stored as an override.
 - `backend/app/services/decision_service.py` — runs the engine, creates the structured incident (never by the model), stores decision/tool runs/audit, notifies the citizen, fails closed.
 - Incidents have `humanApprovalRequired: true` and `departmentContacted: false`. A human review UI is Phase 6.
+
+
+## Phase 5 — organization workspace
+Collections: `volunteer_groups` (+ `members/{uid}`), `events` (+ `registrations/{uid}`), `org_updates`, `organization_invites`, `admin_audit`; `organization_members` now stores name/email.
+API: `/api/org/*` (verified members; role matrix in `api/routes/org.py`), `/api/groups`, `/api/events`, `/api/updates` (citizens), `/api/admin/organizations` (admin only), `/api/trending`.
+Rules enforced in the backend: verified organization required; org-scoped reads/writes (other orgs' events return 404); capacity, past and cancelled checks inside one Firestore transaction; events may link only to reports the Decider marked SUGGEST_COMMUNITY_ACTION.
+Queries use single-field equality (no composite indexes); sorting is done in code.
+Known limits: content created by an organization stays visible if it is later rejected (access is removed, content is not hidden); times are shown in the viewer's local time; no email delivery.

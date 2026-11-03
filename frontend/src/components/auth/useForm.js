@@ -15,7 +15,8 @@ export default function useForm(initial, validate) {
     setSubmitting(true)
     try { await fn(values) } catch (err) { setFormError(err.message) } finally { setSubmitting(false) }
   }
-  return { values, errors, set, submit, submitting, formError }
+  const reset = () => { setValues(initial); setErrors({}) }
+  return { values, errors, set, submit, submitting, formError, reset }
 }
 
 export const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)

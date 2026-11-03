@@ -45,3 +45,13 @@ class AccountOut(BaseModel):
     accountType: Literal["citizen", "organization", "admin"]
     locality: str | None = None
     organization: OrganizationSummary | None = None
+
+
+class OrgMemberRegistration(BaseModel):
+    contactName: str = Field(min_length=2, max_length=80)
+    inviteCode: str = Field(min_length=10, max_length=80)
+
+    @field_validator("contactName", "inviteCode")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        return v.strip()

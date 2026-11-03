@@ -11,11 +11,18 @@ import CitizenHome from '../pages/citizen/CitizenHome.jsx'
 import Explore from '../pages/citizen/Explore.jsx'
 import ReportNew from '../pages/citizen/ReportNew.jsx'
 import PostResult from '../pages/citizen/PostResult.jsx'
+import Community from '../pages/citizen/Community.jsx'
 import Profile from '../pages/citizen/Profile.jsx'
 import Notifications from '../pages/citizen/Notifications.jsx'
 import OrgLogin from '../pages/organization/OrgLogin.jsx'
 import OrgRegister from '../pages/organization/OrgRegister.jsx'
 import OrgDashboard from '../pages/organization/OrgDashboard.jsx'
+import OrgGroups from '../pages/organization/OrgGroups.jsx'
+import OrgEvents from '../pages/organization/OrgEvents.jsx'
+import OrgUpdates from '../pages/organization/OrgUpdates.jsx'
+import OrgMembers from '../pages/organization/OrgMembers.jsx'
+import OrgCivic from '../pages/organization/OrgCivic.jsx'
+import OrgJoin from '../pages/organization/OrgJoin.jsx'
 import OrgSettings from '../pages/organization/OrgSettings.jsx'
 import ComingSoon from '../pages/shared/ComingSoon.jsx'
 
@@ -33,6 +40,7 @@ export default function AppRouter() {
           <Route path="/citizen/register" element={<CitizenRegister />} />
           <Route path="/org/login" element={<OrgLogin />} />
           <Route path="/org/register" element={<OrgRegister />} />
+          <Route path="/org/join" element={<OrgJoin />} />
         </Route>
 
         {/* Citizen area — social feed layout */}
@@ -43,7 +51,7 @@ export default function AppRouter() {
             <Route path="explore" element={<Explore />} />
             <Route path="report/new" element={<ReportNew />} />
             <Route path="my-reports" element={soon('My reports', 6)} />
-            <Route path="groups" element={soon('Volunteer groups & events', 5)} />
+            <Route path="groups" element={<Community />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="profile" element={<Profile />} />
           </Route>
@@ -56,10 +64,11 @@ export default function AppRouter() {
             <Route path="dashboard" element={<OrgDashboard />} />
             <Route path="settings" element={<OrgSettings />} />
             <Route element={<RequireVerifiedOrg />}>
-              <Route path="groups" element={soon('Volunteer groups', 5)} />
-              <Route path="events" element={soon('Events & registrations', 5)} />
-              <Route path="updates" element={soon('Organization updates', 5)} />
-              <Route path="members" element={soon('Members', 5)} />
+              <Route path="civic" element={<OrgCivic />} />
+              <Route path="groups" element={<OrgGroups />} />
+              <Route path="events" element={<OrgEvents />} />
+              <Route path="updates" element={<OrgUpdates />} />
+              <Route path="members" element={<OrgMembers />} />
             </Route>
           </Route>
         </Route>

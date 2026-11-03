@@ -61,6 +61,17 @@ class PostService:
             rows = [r for r in rows if s in r["description"].lower() or s in r.get("locationText", "").lower() or s in r["referenceId"].lower()]
         return self._out_many(rows, account)
 
+    def trending(self, locality=None, days: int = 7) -> list[dict]:
+        """Top categories by recent reports + likes, computed from real posts (no stored counters to drift)."""
+        from datetime import timedelta
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        agg: dict[str, dict] = {}
+        for p in self.posts.list(locality=locality, limit=300):
+            if p["createdAt"] >= since:
+                a = agg.setdefault(p["category"], {"category": p["category"], "reports": 0, "likes": 0})
+                a["reports"] += 1; a["likes"] += p.get("likeCount", 0)
+        return sorted(agg.values(), key=lambda a: (a["reports"] + a["likes"]), reverse=True)[:5]
+
     def like(self, account, post_id: str) -> dict:
         r = self.posts.toggle_like(post_id, account["uid"])
         if r is None:

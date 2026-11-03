@@ -4,6 +4,7 @@ Uses the same TEST DOUBLES as the pytest suite for Firestore/Storage/LLM/Decider
 HTTP stack and the report -> agent -> decision -> result workflow, not live Firebase or Bedrock."""
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 
 import httpx
 import uvicorn
@@ -13,15 +14,15 @@ from app.core import deps, security
 from app.main import app
 from app.services.account_service import AccountService
 from app.services.media_service import MediaService
-from tests.fakes import FakeDecider, InMemoryDecisionRepo, InMemoryPostRepo, InMemoryStorage, ScriptedModel
-from tests.test_accounts import FakeRepo
+from tests.fakes import FakeDecider, InMemoryDecisionRepo, InMemoryPostRepo, InMemoryStorage, MemAccounts, MemCommunity, ScriptedModel
 
 PORT = 8765
 posts, decisions, storage = InMemoryPostRepo(), InMemoryDecisionRepo(), InMemoryStorage()
-svc = AccountService(FakeRepo(), lambda uid, c: None)
+accounts, community = MemAccounts(), MemCommunity()
+svc = AccountService(accounts, lambda uid, c: None)
 engine = StrandsDeciderEngine(decider=FakeDecider(), model_factory=lambda: ScriptedModel())
 app.dependency_overrides.update({security.get_service: lambda: svc, deps.get_post_repo: lambda: posts, deps.get_decision_repo: lambda: decisions,
-                                 deps.get_storage: lambda: storage, deps.get_engine: lambda: engine, deps.get_media_service: lambda: MediaService(storage, 5)})
+                                 deps.get_storage: lambda: storage, deps.get_community_repo: lambda: community, deps.get_account_repo: lambda: accounts, deps.get_engine: lambda: engine, deps.get_media_service: lambda: MediaService(storage, 5)})
 security.verify_token = lambda t: security.Principal(uid=t, email=f"{t}@example.test")
 
 
@@ -58,8 +59,28 @@ def main():
     step("112" in c.get("/api/notifications", headers=H).json()[0]["text"], "citizen notified with emergency guidance")
     feed = c.get("/api/posts?locality=Anna%20Nagar&q=wire", headers=H).json()
     step(len(feed) == 1 and feed[0]["mediaUrl"], "feed search finds the report with a signed media URL")
-    step(c.post("/api/posts", headers={"Authorization": "Bearer org-1"}, json={"description": "abc def ghi", "category": "Other", "locality": "Anna Nagar"}).status_code == 404,
-         "unregistered login cannot post (404, no account)")
+    # ---------- Phase 5: organization workflow ----------
+    O, A, C2 = {"Authorization": "Bearer org-1"}, {"Authorization": "Bearer admin-1"}, {"Authorization": "Bearer citizen-2"}
+    org = {"contactName": "Asha", "orgName": "Madurai Green Trust", "category": "NGO / Non-profit", "description": "We organize weekly clean-up drives across the city.", "locality": "Anna Nagar"}
+    step(c.post("/api/auth/register/organization", json=org, headers=O).status_code == 201, "organization registers (starts Pending)")
+    step(c.get("/api/org/overview", headers=O).status_code == 403, "pending organization is blocked by the backend")
+    c.post("/api/auth/register/citizen", json={"displayName": "Admin", "locality": "Anna Nagar"}, headers=A); accounts.users["admin-1"]["accountType"] = "admin"
+    step(c.patch("/api/admin/organizations/org1/verification", json={"status": "verified", "note": "docs checked"}, headers=A).status_code == 200, "admin verifies the organization")
+    soon = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    ev = c.post("/api/org/events", headers=O, json={"title": "Plot clean-up", "description": "Bring gloves, bags provided.", "locality": "Anna Nagar", "startsAt": soon, "capacity": 1,
+                                                   "safetyNotes": "Gloves and closed shoes. Do not touch sharp waste."})
+    step(ev.status_code == 201, "verified organization creates a volunteer event")
+    c.post("/api/auth/register/citizen", json={"displayName": "Meena S", "locality": "Anna Nagar"}, headers=C2)
+    step(c.post(f"/api/events/{ev.json()['id']}/register", headers=H).status_code == 200, "citizen registers for the event")
+    step(c.post(f"/api/events/{ev.json()['id']}/register", headers=C2).status_code == 409, "second citizen is refused: event is full")
+    step([r["name"] for r in c.get(f"/api/org/events/{ev.json()['id']}/registrations", headers=O).json()] == ["Ravi Kumar"], "organization sees its registration list")
+    r2 = c.post("/api/posts", headers=C2, json={"description": "Litter and dry leaves piled at the vacant plot at our street corner.", "category": "Waste & sanitation", "locality": "Anna Nagar"})
+    for _ in range(30):
+        p2 = c.get(f"/api/posts/{r2.json()['id']}", headers=C2).json()
+        if p2["decisionState"] != "pending": break
+        time.sleep(0.2)
+    step(p2["decision"]["action"] == "SUGGEST_COMMUNITY_ACTION" and p2["decision"]["communityAction"]["matches"], "community-action report is matched to the real upcoming event")
+    step(c.get("/api/org/opportunities", headers=O).json()[0]["postId"] == p2["id"], "organization sees the report under Civic activity")
     server.should_exit = True
     print("E2E OK")
 

@@ -10,4 +10,5 @@ dist/
 .env.*
 !.env.example
 serviceAccount*.json
+backend/uploads/
 *-firebase-adminsdk-*.json

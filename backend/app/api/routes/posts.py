@@ -1,7 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
+import mimetypes
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 
 from app.core.constants import AccountType
-from app.core.deps import get_decision_service, get_media_service, get_post_service
+from app.core.deps import get_decision_service, get_media_service, get_post_service, get_storage
+from app.core.storage import LocalStorage
 from app.core.security import require_account
 from app.schemas.posts import CommentCreate, PostCreate, PostOut
 
@@ -15,6 +19,16 @@ async def upload_media(file: UploadFile = File(...), account: dict = Depends(cit
     return await media.upload(account["uid"], file)
 
 
+@router.get("/media/file/{path:path}", include_in_schema=False)
+def media_file(path: str, exp: int, sig: str, storage=Depends(get_storage)):
+    """Serves local-storage media. No auth header (an <img> cannot send one): the expiring HMAC signature is the permission."""
+    f = storage.open_signed(path, exp, sig) if isinstance(storage, LocalStorage) else None
+    if f is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found or link expired.")
+    return FileResponse(f, media_type=mimetypes.guess_type(f.name)[0] or "application/octet-stream",
+                        headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+
+
 @router.get("/posts", response_model=list[PostOut])
 def list_posts(locality: str | None = None, category: str | None = None, q: str | None = None, mine: str | None = None,
                account: dict = Depends(anyone), svc=Depends(get_post_service)):
@@ -26,6 +40,11 @@ def create_post(body: PostCreate, bg: BackgroundTasks, account: dict = Depends(c
     post_id = svc.create(account, body)
     bg.add_task(decide.run, post_id)  # the Strands agent runs after the response; the UI polls decisionState
     return svc.get_out(account, post_id)
+
+
+@router.get("/trending")
+def trending(locality: str | None = None, account: dict = Depends(anyone), svc=Depends(get_post_service)):
+    return svc.trending(locality)
 
 
 @router.get("/posts/{post_id}", response_model=PostOut)

@@ -30,3 +30,9 @@ ISSUE_CATEGORIES = [
     "Roads & potholes", "Waste & sanitation", "Water supply", "Drainage & flooding", "Street lighting",
     "Electricity", "Public transport", "Parks & public spaces", "Public safety", "Other",
 ]
+
+INVITES = "organization_invites"
+ADMIN_AUDIT = "admin_audit"
+GROUPS = "volunteer_groups"
+EVENTS = "events"
+UPDATES = "org_updates"

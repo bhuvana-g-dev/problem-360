@@ -6,6 +6,18 @@ import { homeFor, loginFor, ACCOUNT_TYPES, VERIFICATION } from '../config/consta
 import Alert from '../components/ui/Alert.jsx'
 
 /** Route guard: signed in AND the right account type. UI convenience only — the backend enforces the real permission. */
+/** An organization login whose membership was removed has no workspace. */
+function NoOrganization() {
+  const { signOut } = useAuth()
+  return (
+    <div className="grid min-h-screen place-items-center p-6"><div className="w-full max-w-md">
+      <EmptyState icon={ShieldAlert} title="No organization access" action={<button onClick={signOut} className="font-semibold text-brand underline">Log out</button>}>
+        This login isn’t a member of any organization (your membership may have been removed). Ask an organization owner for a new invite.
+      </EmptyState>
+    </div></div>
+  )
+}
+
 export function RequireAccount({ type }) {
   const { status, account, error, retry } = useAuth()
   const location = useLocation()
@@ -13,6 +25,7 @@ export function RequireAccount({ type }) {
   if (status === 'error') return <ErrorScreen message={error} onRetry={retry} />
   if (status !== 'ready') return <Navigate to={loginFor(type)} state={{ from: location }} replace />
   if (account.accountType !== type) return <Navigate to={homeFor(account.accountType)} replace />
+  if (type === ACCOUNT_TYPES.ORGANIZATION && !account.organization) return <NoOrganization />
   return <Outlet />
 }
 

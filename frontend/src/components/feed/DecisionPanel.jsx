@@ -47,6 +47,9 @@ export default function DecisionPanel({ state, decision, onRetry }) {
           <Row icon={Building2}>Recommended department: <b>{decision.department.name}</b>. This is a recommendation; no department has been contacted.</Row>
         )}
         {decision.communityAction?.suggestion && <Row icon={Users}>{decision.communityAction.suggestion}</Row>}
+        {decision.communityAction?.matches?.length > 0 && (
+          <Row icon={Users}>Upcoming volunteer events nearby: {decision.communityAction.matches.map((m) => `${m.title} (${m.orgName})`).join('; ')}.</Row>
+        )}
         {decision.questions?.length > 0 && <Row icon={HelpCircle}>{decision.questions.join(' ')}</Row>}
         {decision.humanReviewRequired && <Row icon={UserCheck}>Marked for human review.</Row>}
       </div>

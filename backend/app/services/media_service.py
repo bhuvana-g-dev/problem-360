@@ -1,8 +1,11 @@
 """Validated media upload to private Firebase Storage. Type is decided by file CONTENT (magic bytes), not the
 client's claimed content-type or filename, and size is capped while reading."""
+import logging
 import uuid
 
 from fastapi import HTTPException, status
+
+log = logging.getLogger("problem360.media")
 
 _SIGNATURES = {
     "image/jpeg": ("jpg", "image", lambda b: b[:3] == b"\xff\xd8\xff"),
@@ -30,5 +33,10 @@ class MediaService:
         if not data or not matches(bytes(data[:16])):
             raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "The file content does not match its type.")
         path = f"posts/{uid}/{uuid.uuid4().hex}.{ext}"   # server-chosen name: no client-controlled path
-        self.storage.put(path, bytes(data), ctype)
+        try:
+            self.storage.put(path, bytes(data), ctype)
+        except Exception as e:  # bucket missing, wrong name or no permission: say so instead of a bare 500
+            log.exception("media upload failed for %s", uid)
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                                "Photo storage is not available right now. You can still submit the report without a photo.") from e
         return {"mediaPath": path, "mediaType": kind}

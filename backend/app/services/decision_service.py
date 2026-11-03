@@ -40,8 +40,8 @@ def notification_text(d: dict, ref: str) -> str:
 
 
 class DecisionService:
-    def __init__(self, posts, decisions, engine):
-        self.posts, self.decisions, self.engine = posts, decisions, engine
+    def __init__(self, posts, decisions, engine, community=None):
+        self.posts, self.decisions, self.engine, self.community = posts, decisions, engine, community
 
     def _nearby(self, locality: str, days: int, exclude_id: str) -> list[dict]:
         since = datetime.now(timezone.utc) - timedelta(days=days)
@@ -68,6 +68,12 @@ class DecisionService:
                  "reasoning": "Strands agent did not complete.", "questions": [], "urgency": None, "department": None, "duplicate": None,
                  "communityAction": None, "humanReviewRequired": True, "overrides": [], "model": None, "deciderUsed": False, "externalContact": False, "toolRuns": []}
         now = datetime.now(timezone.utc)
+        if d["state"] == "completed" and d["action"] == "SUGGEST_COMMUNITY_ACTION" and self.community:   # real upcoming events, found by code
+            try:
+                soon = [e for e in self.community.list_events(locality=post["locality"]) if e["status"] == "scheduled" and e["startsAt"] >= now][:3]
+                d["communityAction"]["matches"] = [{"id": e["id"], "title": e["title"], "orgName": e["orgName"], "startsAt": e["startsAt"].isoformat()} for e in soon]
+            except Exception:
+                log.exception("could not look up community events")
         for r in d.get("toolRuns", []):
             self.decisions.audit(post_id, "tool_run", {"tool": r["tool"], "invokedBy": r["invokedBy"], "ms": r["ms"], "output": _trim(r["output"])})
         for o in d.get("overrides", []):

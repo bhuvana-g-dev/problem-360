@@ -1,7 +1,13 @@
 """Account use-cases. Key rule: registering as an organization grants NO organization privileges —
 the organization starts Pending and only an admin can set it to Verified."""
+from datetime import datetime, timezone
+
 from app.core.constants import AccountType
 from app.repositories.accounts import AccountExists, AccountRepository
+
+
+class InviteInvalid(Exception):
+    pass
 
 
 class AccountService:
@@ -17,6 +23,17 @@ class AccountService:
         org = {"name": body.orgName, "category": body.category, "description": body.description,
                "locality": body.locality, "website": str(body.website) if body.website else None}
         self.repo.create_organization_with_owner(uid, email, body.contactName, org)
+        self.set_claims(uid, {"accountType": AccountType.ORGANIZATION})
+
+    def register_org_member(self, uid, email, body) -> None:
+        """Join an EXISTING organization through a single-use invite sent to this exact email. Never creates an organization."""
+        inv = self.repo.get_invite(body.inviteCode)
+        org = self.repo.get_organization(inv["organizationId"]) if inv else None
+        if not inv or not org or inv["status"] != "pending" or inv["expiresAt"] < datetime.now(timezone.utc):
+            raise InviteInvalid("This invite is invalid, expired or already used.")
+        if (email or "").strip().lower() != inv["email"].strip().lower():
+            raise InviteInvalid("This invite was sent to a different email address.")
+        self.repo.accept_invite(uid, email, body.contactName, inv, org["locality"])
         self.set_claims(uid, {"accountType": AccountType.ORGANIZATION})
 
     def describe(self, uid, email) -> dict | None:

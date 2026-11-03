@@ -39,6 +39,10 @@ class PostRepository:
         rows = [{**s.to_dict(), "id": s.id} for s in self._posts().where("locality", "==", locality).limit(300).stream()]
         return [p for p in rows if p["id"] != exclude_id and p["createdAt"] >= since and p.get("status") not in ("Resolved", "Verified")]
 
+    def list_community_opportunities(self, limit: int = 100) -> list[dict]:
+        q = self._posts().where("decision.action", "==", "SUGGEST_COMMUNITY_ACTION").limit(limit)
+        return sorted(({**s.to_dict(), "id": s.id} for s in q.stream()), key=lambda p: p["createdAt"], reverse=True)
+
     def set_decision(self, post_id: str, state: str, summary: dict | None) -> None:
         self._posts().document(post_id).update({"decisionState": state, "decision": summary, "updatedAt": now()})
 

@@ -36,6 +36,8 @@ class InMemoryPostRepo:
     def recent_for_duplicates(self, locality, since, exclude_id):
         return [p for p in self.posts.values() if p["locality"] == locality and p["id"] != exclude_id and p["createdAt"] >= since]
     def set_decision(self, pid, state, summary): self.posts[pid].update(decisionState=state, decision=summary)
+    def list_community_opportunities(self, limit=100):
+        return sorted([dict(p) for p in self.posts.values() if (p.get("decision") or {}).get("action") == "SUGGEST_COMMUNITY_ACTION"], key=lambda p: p["createdAt"], reverse=True)
     def toggle_like(self, pid, uid):
         if pid not in self.posts: return None
         s = self.likes.setdefault(pid, set())
@@ -46,7 +48,7 @@ class InMemoryPostRepo:
     def add_comment(self, pid, cid, data):
         self.comments.setdefault(pid, []).append({**data, "id": cid, "createdAt": datetime.now(timezone.utc)}); self.posts[pid]["commentCount"] += 1
     def add_notification(self, uid, text, pid): self.notes.append({"id": str(len(self.notes)), "uid": uid, "text": text, "postId": pid, "createdAt": datetime.now(timezone.utc)})
-    def list_notifications(self, uid, limit=50): return [n for n in self.notes if n["uid"] == uid]
+    def list_notifications(self, uid, limit=50): return [n for n in reversed(self.notes) if n["uid"] == uid]   # newest first, like the real repo
 
 
 class FakeDecider:
@@ -131,3 +133,86 @@ class ScriptedModel(Model):
             for e in self._events([(out_tool, payload)]): yield e
             return
         for e in self._events(text="done"): yield e
+
+
+# ------------------------- Phase 5 in-memory doubles -------------------------
+from app.repositories.accounts import AccountExists  # noqa: E402
+
+
+class MemCommunity:
+    """Same interface as CommunityRepository, including capacity/past/cancelled rules."""
+    def __init__(self): self.groups, self.gm, self.events, self.regs, self.updates = {}, {}, {}, {}, {}
+    @staticmethod
+    def _now(): return datetime.now(timezone.utc)
+    def create_group(self, gid, d): self.groups[gid] = {**d, "id": gid, "memberCount": 0, "createdAt": self._now()}
+    def get_group(self, gid): return dict(self.groups[gid]) if gid in self.groups else None
+    def list_groups(self, org_id=None, locality=None, limit=200):
+        return sorted([g for g in self.groups.values() if (not org_id or g["orgId"] == org_id) and (not locality or g["locality"] == locality)], key=lambda g: g["createdAt"], reverse=True)
+    def join_group(self, gid, uid, name):
+        if gid not in self.groups: return "missing"
+        s = self.gm.setdefault(gid, {})
+        if uid in s: return "already"
+        s[uid] = name; self.groups[gid]["memberCount"] = len(s); return "ok"
+    def leave_group(self, gid, uid):
+        s = self.gm.get(gid, {})
+        if uid not in s: return False
+        del s[uid]; self.groups[gid]["memberCount"] = len(s); return True
+    def joined_group_ids(self, gids, uid): return {g for g in gids if uid in self.gm.get(g, {})}
+    def list_group_members(self, gid): return [{"uid": u, "name": n} for u, n in self.gm.get(gid, {}).items()]
+    def create_event(self, eid, d): self.events[eid] = {**d, "id": eid, "registrationCount": 0, "status": "scheduled", "createdAt": self._now()}
+    def get_event(self, eid): return dict(self.events[eid]) if eid in self.events else None
+    def list_events(self, org_id=None, locality=None, limit=200):
+        return sorted([e for e in self.events.values() if (not org_id or e["orgId"] == org_id) and (not locality or e["locality"] == locality)], key=lambda e: e["startsAt"])
+    def cancel_event(self, eid): self.events[eid]["status"] = "cancelled"
+    def register(self, eid, uid, name):
+        e = self.events.get(eid)
+        if not e: return "missing"
+        if e["status"] != "scheduled": return "cancelled"
+        if e["startsAt"] < self._now(): return "past"
+        r = self.regs.setdefault(eid, {})
+        if uid in r: return "already"
+        if e.get("capacity") is not None and e["registrationCount"] >= e["capacity"]: return "full"
+        r[uid] = {"name": name, "registeredAt": self._now()}; e["registrationCount"] = len(r); return "ok"
+    def unregister(self, eid, uid):
+        r = self.regs.get(eid, {})
+        if uid not in r: return False
+        del r[uid]; self.events[eid]["registrationCount"] = len(r); return True
+    def registered_event_ids(self, eids, uid): return {e for e in eids if uid in self.regs.get(e, {})}
+    def list_registrations(self, eid): return [{"uid": u, **v} for u, v in self.regs.get(eid, {}).items()]
+    def create_update(self, uid, d): self.updates[uid] = {**d, "id": uid, "createdAt": self._now()}
+    def list_updates(self, org_id=None, limit=50):
+        return sorted([u for u in self.updates.values() if not org_id or u["orgId"] == org_id], key=lambda u: u["createdAt"], reverse=True)[:limit]
+
+
+class MemAccounts:
+    """Same interface as AccountRepository (accounts, organizations, members, invites, verification)."""
+    def __init__(self): self.users, self.orgs, self.members, self.invites, self.audit = {}, {}, {}, {}, []
+    def get_user(self, uid): return self.users.get(uid)
+    def get_organization(self, oid): return ({**self.orgs[oid], "id": oid} if oid in self.orgs else None)
+    def get_membership(self, oid, uid): return self.members.get(f"{oid}_{uid}")
+    def create_citizen(self, uid, email, name, loc):
+        if uid in self.users: raise AccountExists()
+        self.users[uid] = {"uid": uid, "email": email, "displayName": name, "accountType": "citizen", "locality": loc}
+    def create_organization_with_owner(self, uid, email, contact, org):
+        if uid in self.users: raise AccountExists()
+        oid = f"org{len(self.orgs) + 1}"
+        self.users[uid] = {"uid": uid, "email": email, "displayName": contact, "accountType": "organization", "locality": org["locality"], "organizationId": oid}
+        self.orgs[oid] = {**org, "verificationStatus": "pending", "createdBy": uid, "createdAt": datetime.now(timezone.utc)}
+        self.members[f"{oid}_{uid}"] = {"organizationId": oid, "uid": uid, "role": "owner", "displayName": contact, "email": email, "createdAt": datetime.now(timezone.utc)}
+        return self.users[uid], oid
+    def list_members(self, oid): return sorted([m for m in self.members.values() if m["organizationId"] == oid], key=lambda m: m["createdAt"])
+    def set_member_role(self, oid, uid, role): self.members[f"{oid}_{uid}"]["role"] = role
+    def remove_member(self, oid, uid): del self.members[f"{oid}_{uid}"]; self.users[uid]["organizationId"] = None
+    def create_invite(self, code, d): self.invites[code] = {**d, "code": code, "status": "pending", "createdAt": datetime.now(timezone.utc)}
+    def get_invite(self, code): return dict(self.invites[code]) if code in self.invites else None
+    def list_invites(self, oid): return [i for i in self.invites.values() if i["organizationId"] == oid and i["status"] == "pending"]
+    def revoke_invite(self, code): self.invites[code]["status"] = "revoked"
+    def accept_invite(self, uid, email, contact, inv, locality):
+        if uid in self.users: raise AccountExists()
+        oid = inv["organizationId"]
+        self.users[uid] = {"uid": uid, "email": email, "displayName": contact, "accountType": "organization", "locality": locality, "organizationId": oid}
+        self.members[f"{oid}_{uid}"] = {"organizationId": oid, "uid": uid, "role": inv["role"], "displayName": contact, "email": email, "createdAt": datetime.now(timezone.utc)}
+        self.invites[inv["code"]]["status"] = "accepted"
+    def list_organizations(self, status=None): return [{**o, "id": i} for i, o in self.orgs.items() if not status or o["verificationStatus"] == status]
+    def set_verification(self, oid, status, by, note):
+        self.orgs[oid]["verificationStatus"] = status; self.audit.append({"org": oid, "status": status, "by": by, "note": note})

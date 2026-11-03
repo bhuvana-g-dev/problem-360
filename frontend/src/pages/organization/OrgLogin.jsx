@@ -23,6 +23,7 @@ export default function OrgLogin() {
     <AuthShell variant="organization" title="Organization login" subtitle="Access your organization workspace." points={ORG_POINTS}
       footer={<>
         <p>No account yet? <Link className="font-medium text-info hover:underline" to={ROUTES.orgRegister}>Register your organization</Link></p>
+        <p>Have an invite? <Link className="font-medium text-info hover:underline" to="/org/join">Join an organization</Link></p>
         <p>Looking for the citizen app? <Link className="font-medium text-brand hover:underline" to={ROUTES.citizenLogin}>Citizen login</Link></p>
       </>}>
       <form onSubmit={f.submit(async (v) => { await signIn(ACCOUNT_TYPES.ORGANIZATION, v.email.trim(), v.password); nav(ROUTES.orgHome, { replace: true }) })} className="space-y-4" noValidate>
