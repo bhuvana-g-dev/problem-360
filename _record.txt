@@ -1,9 +1,0 @@
-make_admin -> 0: demo.reviewer.11032247@example.com is now an admin. 
-FAILED after 114 s: TimeoutError: Locator.wait_for: Timeout 20000ms exceeded.
-Call log:
-  - waiting for get_by_text("Possible danger").first to be visible
-
-url: http://localhost:5173/admin/reviews
-alerts: 
-form values: [':r5:=', ':r7:=', ':r9:=']
-demo accounts created: demo.citizen.11032247@example.com, demo.reviewer.11032247@example.com (delete them in Firebase Authentication when done)
