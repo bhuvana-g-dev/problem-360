@@ -2,6 +2,7 @@ import { NavLink, Outlet, Link } from 'react-router-dom'
 import { Home, Compass, PlusCircle, Bell, User, LogOut, Users } from 'lucide-react'
 import Logo from '../ui/Logo.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { LangToggle } from '../../i18n/LangContext.jsx'
 
 const nav = [
   { to: '/app', label: 'Home', icon: Home, end: true },
@@ -28,6 +29,7 @@ export default function CitizenLayout() {
               <NavLink key={to} to={to} end={end} className={link}><Icon className="h-4 w-4" />{label}</NavLink>
             ))}
           </nav>
+          <LangToggle className="ml-auto md:ml-0" />
           <button onClick={signOut} className="rounded-xl p-2 text-ink/60 hover:bg-ink/5" aria-label="Log out" title={account?.displayName}>
             <LogOut className="h-5 w-5" />
           </button>

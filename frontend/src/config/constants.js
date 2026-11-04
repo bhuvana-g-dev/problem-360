@@ -11,12 +11,16 @@ export const ROUTES = {
   orgRegister: '/org/register',
   citizenHome: '/app',
   orgHome: '/org/dashboard',
+  adminLogin: '/admin/login',
+  adminHome: '/admin/reviews',
 }
 
 export const homeFor = (type) =>
-  type === ACCOUNT_TYPES.ORGANIZATION ? ROUTES.orgHome : type === ACCOUNT_TYPES.CITIZEN ? ROUTES.citizenHome : ROUTES.home
+  type === ACCOUNT_TYPES.ORGANIZATION ? ROUTES.orgHome : type === ACCOUNT_TYPES.CITIZEN ? ROUTES.citizenHome
+    : type === ACCOUNT_TYPES.ADMIN ? ROUTES.adminHome : ROUTES.home
 
-export const loginFor = (type) => (type === ACCOUNT_TYPES.ORGANIZATION ? ROUTES.orgLogin : ROUTES.citizenLogin)
+export const loginFor = (type) =>
+  type === ACCOUNT_TYPES.ORGANIZATION ? ROUTES.orgLogin : type === ACCOUNT_TYPES.ADMIN ? ROUTES.adminLogin : ROUTES.citizenLogin
 
 export const VERIFICATION = { PENDING: 'pending', VERIFIED: 'verified', REJECTED: 'rejected' }
 

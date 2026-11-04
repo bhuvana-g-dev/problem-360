@@ -25,6 +25,10 @@ import OrgCivic from '../pages/organization/OrgCivic.jsx'
 import OrgJoin from '../pages/organization/OrgJoin.jsx'
 import OrgSettings from '../pages/organization/OrgSettings.jsx'
 import ComingSoon from '../pages/shared/ComingSoon.jsx'
+import AdminLayout from '../components/layout/AdminLayout.jsx'
+import AdminLogin from '../pages/admin/AdminLogin.jsx'
+import AdminReviews from '../pages/admin/AdminReviews.jsx'
+import AdminOrganizations from '../pages/admin/AdminOrganizations.jsx'
 
 const soon = (title, phase) => <ComingSoon title={title} phase={phase} />
 
@@ -41,6 +45,16 @@ export default function AppRouter() {
           <Route path="/org/login" element={<OrgLogin />} />
           <Route path="/org/register" element={<OrgRegister />} />
           <Route path="/org/join" element={<OrgJoin />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+        </Route>
+
+        {/* Reviewer (admin) area — human review queue and organization verification */}
+        <Route element={<RequireAccount type={ACCOUNT_TYPES.ADMIN} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="reviews" replace />} />
+            <Route path="reviews" element={<AdminReviews />} />
+            <Route path="organizations" element={<AdminOrganizations />} />
+          </Route>
         </Route>
 
         {/* Citizen area — social feed layout */}

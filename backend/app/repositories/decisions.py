@@ -28,6 +28,9 @@ class DecisionRepository:
     def create_incident(self, reference_id: str, doc: dict) -> None:
         self.db.collection(INCIDENTS).document(reference_id).set({**doc, "createdAt": now()})
 
+    def update_incident(self, reference_id: str, fields: dict) -> None:
+        self.db.collection(INCIDENTS).document(reference_id).set({**fields, "updatedAt": now()}, merge=True)
+
     def get_incident(self, reference_id: str) -> dict | None:
         s = self.db.collection(INCIDENTS).document(reference_id).get()
         return s.to_dict() if s.exists else None

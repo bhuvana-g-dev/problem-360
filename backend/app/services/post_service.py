@@ -27,7 +27,8 @@ class PostService:
                 "description": p["description"], "category": p["category"], "locality": p["locality"], "locationText": p.get("locationText", ""),
                 "coordinates": p.get("coordinates"), "createdAt": iso(p["createdAt"]), "mediaUrl": url, "mediaType": p.get("mediaType") if url else None,
                 "status": p["status"], "referenceId": p["referenceId"], "likeCount": p.get("likeCount", 0), "commentCount": p.get("commentCount", 0),
-                "likedByMe": p["id"] in liked, "decisionState": p.get("decisionState", "pending"), "decision": p.get("decision")}
+                "likedByMe": p["id"] in liked, "decisionState": p.get("decisionState", "pending"), "decision": p.get("decision"),
+                "review": ({"state": r["state"], "at": iso(r.get("at")), "note": r.get("note") or None} if (r := p.get("review")) else None)}
 
     def _out_many(self, rows, account):
         liked = self.posts.liked_ids([r["id"] for r in rows], account["uid"]) if rows else set()

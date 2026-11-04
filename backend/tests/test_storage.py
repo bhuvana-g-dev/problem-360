@@ -54,3 +54,45 @@ def test_s3_storage_needs_a_bucket():
         assert False, "expected an error"
     except RuntimeError as e:
         assert "S3_BUCKET" in str(e)
+
+
+# ---- Cloudinary: real SDK URL signing (offline); the network upload/lookup is replaced ----
+def test_cloudinary_needs_all_three_settings():
+    from app.core.storage import CloudinaryStorage
+    for args in (("", "k", "s"), ("c", "", "s"), ("c", "k", None)):
+        try:
+            CloudinaryStorage(*args)
+            assert False, "expected an error"
+        except RuntimeError as e:
+            assert "CLOUDINARY_CLOUD_NAME" in str(e)
+
+
+def test_cloudinary_uploads_private_and_hands_out_signed_urls(monkeypatch):
+    import cloudinary.api
+    import cloudinary.uploader
+    from cloudinary.exceptions import NotFound
+
+    from app.core.storage import CloudinaryStorage
+    calls = []
+    monkeypatch.setattr(cloudinary.uploader, "upload", lambda f, **kw: calls.append((f.read(), kw)) or {"public_id": kw["public_id"]})
+    store = CloudinaryStorage("democloud", "123456", "not-a-real-secret")
+
+    store.put("posts/u1/abc123.jpg", PNG, "image/jpeg")
+    store.put("posts/u1/def456.mp4", b"\x00\x00\x00\x18ftypmp42", "video/mp4")
+    (data, img), (_, vid) = calls
+    assert data == PNG and img["public_id"] == "posts/u1/abc123" and img["resource_type"] == "image" and img["type"] == "authenticated"
+    assert vid["public_id"] == "posts/u1/def456" and vid["resource_type"] == "video" and vid["type"] == "authenticated"
+    assert img["overwrite"] is False
+
+    url = store.signed_url("posts/u1/abc123.jpg")
+    assert url.startswith("https://res.cloudinary.com/democloud/image/authenticated/s--") and url.endswith("/posts/u1/abc123.jpg")
+    assert "/video/authenticated/s--" in store.signed_url("posts/u1/def456.mp4")
+    assert store.signed_url("posts/u1/abc123.jpg") == url and store.signed_url("posts/u2/abc123.jpg") != url   # signature is per file
+
+    monkeypatch.setattr(cloudinary.api, "resource", lambda pid, **kw: {"public_id": pid})
+    assert store.exists("posts/u1/abc123.jpg")
+
+    def missing(pid, **kw):
+        raise NotFound("Resource not found")
+    monkeypatch.setattr(cloudinary.api, "resource", missing)
+    assert not store.exists("posts/u1/nope.jpg")

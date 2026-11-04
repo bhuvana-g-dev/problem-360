@@ -65,9 +65,9 @@ export function AuthProvider({ children }) {
       if (account.accountType !== expectedType) {
         await fbSignOut(auth)
         setState({ status: 'signedOut', account: null, error: null })
-        throw new Error(expectedType === ACCOUNT_TYPES.CITIZEN
-          ? 'This is an organization account. Please use the Organization login.'
-          : 'This is a citizen account. Please use the Citizen login.')
+        const which = { [ACCOUNT_TYPES.CITIZEN]: 'a citizen', [ACCOUNT_TYPES.ORGANIZATION]: 'an organization', [ACCOUNT_TYPES.ADMIN]: 'a reviewer (admin)' }
+        const page = { [ACCOUNT_TYPES.CITIZEN]: 'Citizen', [ACCOUNT_TYPES.ORGANIZATION]: 'Organization', [ACCOUNT_TYPES.ADMIN]: 'Reviewer' }
+        throw new Error(`This is ${which[account.accountType] || 'another type of'} account. Please use the ${page[account.accountType] || 'right'} login.`)
       }
       return account
     } catch (e) { throw new Error(friendly(e)) } finally { busy.current = false }

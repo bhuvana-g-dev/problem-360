@@ -67,3 +67,4 @@ class PostOut(BaseModel):
     likedByMe: bool
     decisionState: Literal["pending", "completed", "failed"]
     decision: dict | None = None
+    review: dict | None = None   # human review: {state, at, note}; never the reviewer's id

@@ -12,6 +12,7 @@ import traceback
 from . import config
 from .app import run
 from .decider_client import DeciderClient
+from .models import model_label
 from .tools import _questions
 
 ROUTINE = {"id": "check-1", "text": "The street lights in our lane have not worked for a week and it is very dark at night.",
@@ -21,7 +22,7 @@ DANGER = {"id": "check-2", "text": "Live wire hanging from the electric pole nea
 
 
 def main() -> int:
-    print(f"Decider URL: {config.DECIDER_URL}\nModel: {config.MODEL_ID} ({config.REGION})")
+    print(f"Decider URL: {config.DECIDER_URL}\nModel: {model_label()}" + (f" ({config.REGION})" if config.MODEL_PROVIDER == "bedrock" else ""))
     try:
         a = DeciderClient().decide(f"Category: {DANGER['category']}. Report: {DANGER['text']}", _questions())
         print("[1/3] Decider OK:", a)

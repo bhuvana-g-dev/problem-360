@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, MessageCircle, Share2, MapPin, Hash } from 'lucide-react'
+import { Heart, MessageCircle, Share2, MapPin, Hash, Navigation } from 'lucide-react'
 import DecisionPanel from './DecisionPanel.jsx'
+import { mapLink } from './LocationPreview.jsx'
+import { useT } from '../../i18n/LangContext.jsx'
 import { StatusBadge } from '../ui/Badge.jsx'
 import { timeAgo, initials } from '../../lib/format.js'
 import { addComment, getPost, listComments, retryDecision, toggleLike } from '../../services/posts.js'
@@ -9,6 +11,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 
 export default function PostCard({ post }) {
   const { account } = useAuth()
+  const { t } = useT()
   const [p, setP] = useState(post)
   const [open, setOpen] = useState(false)
   const [comments, setComments] = useState(null)
@@ -71,6 +74,10 @@ export default function PostCard({ post }) {
           <span className="rounded-full bg-gold/20 px-2.5 py-1 font-semibold">{p.category}</span>
           <span className="flex items-center gap-1 text-ink/60"><MapPin className="h-3.5 w-3.5" />{[p.locationText, p.locality].filter(Boolean).join(', ')}</span>
           {p.referenceId && <span className="flex items-center gap-1 text-ink/60"><Hash className="h-3.5 w-3.5" />{p.referenceId}</span>}
+          {p.coordinates && (
+            <a href={mapLink(p.coordinates)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 font-medium text-brand hover:underline">
+              <Navigation className="h-3.5 w-3.5" aria-hidden="true" />{t('geo.openMap')}</a>
+          )}
         </div>
         <p className="text-sm leading-relaxed">{p.description}</p>
         <DecisionPanel state={p.decisionState} decision={p.decision} onRetry={p.author.uid === account.uid ? retry : undefined} />

@@ -17,6 +17,11 @@ DUPLICATE_WINDOW_DAYS = int(os.environ.get("P360_DUPLICATE_DAYS", 30))
 
 MODEL_ID = os.environ.get("SHIP_MODEL", "us.amazon.nova-2-lite-v1:0")  # same default as the workshop kit
 REGION = os.environ.get("AWS_REGION", "us-east-1")
+# Model provider switch (agent/models.py): bedrock (default) | ollama | litellm
+MODEL_PROVIDER = os.environ.get("P360_MODEL_PROVIDER", "bedrock").lower()
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
+LITELLM_MODEL = os.environ.get("LITELLM_MODEL", "")
 DECIDER_URL = os.environ.get("DECIDER_URL", "https://da25tnxy06gjk.cloudfront.net")  # hosted by AWS UG Madurai (from b09_decider.py)
 
 

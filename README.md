@@ -36,10 +36,11 @@ cd ..\frontend; copy .env.example .env; npm install; npm run dev
 ```
 Firebase (free Spark plan is enough): enable Email/Password auth, create Firestore, deploy `firestore.rules` (deny all client access).
 Media storage is pluggable (`STORAGE_BACKEND` in `backend/.env`): `local` (default, free, files in `backend/uploads/` behind
-expiring signed links), `s3` (any S3-compatible store: Backblaze B2, Cloudflare R2, MinIO, Amazon S3) or `firebase` (Blaze plan).
+expiring signed links), `cloudinary` (free plan, no card; files are private and served by signed URLs, which do not expire on the free plan),
+`s3` (any S3-compatible store: Backblaze B2, Cloudflare R2, MinIO, Amazon S3) or `firebase` (Blaze plan).
 
-Tests: `backend` 33 (accounts, permissions, posts, media + storage, agent graph + hook + fail-closed, org workspace);
-`frontend` 12 (`npm.cmd test`). They use test doubles for Firestore, the LLM and the Decider; the Strands graph, hook, tools,
+Tests: `backend` 43 (accounts, permissions, posts, media + storage, agent graph + hook + fail-closed, org workspace,
+review queue, rate limits + moderation, model switch); `frontend` 18 (`npm.cmd test`: decision panel, review queue, Tamil + voice, events). They use test doubles for Firestore, the LLM and the Decider; the Strands graph, hook, tools,
 enforcement, API and permissions are the real code.
 
 ## Platform features
@@ -52,6 +53,19 @@ enforcement, API and permissions are the real code.
 - **Civic activity:** reports the agent judged safe for neighbours (litter, parks only; never urgent, electrical, water or crime) appear
   to verified organizations, who can organise an event linked to that report. The agent's community suggestion also lists real upcoming
   events nearby, found by code, not by the model.
+- **Human review queue** (`/admin/reviews`, reviewer login at `/admin/login`): every report the agent marked for a person
+  (danger, possible duplicate, unclear, or the agent could not run) is listed danger-first. A reviewer approves it
+  (status *Acknowledged*, later *Resolved*) or closes it with a reason (*Rejected*). Every step is written to the audit trail,
+  mirrored on the incident, and the citizen is notified. The page shows the median time from report to a person, overall and
+  for danger reports, computed from real reviews. No notification ever says a department was contacted.
+- **Tamil UI and voice:** an English / தமிழ் switch (remembered on the device) covers the report form, categories, the agent's
+  decision and the review notice. "Speak instead of typing" uses the browser's speech recognition (Chrome / Edge, `ta-IN` or
+  `en-IN`); the text lands in the form so the person can check it. Tamil strings need a fluent reader's check.
+- **Abuse protection:** per-user rate limits (reports 5 per 10 min and 30 per day, comments, likes, uploads; HTTP 429 with
+  `Retry-After`) and comment moderation (no links, phone numbers or email addresses, no spam or shouting, plus an optional
+  blocklist file chosen by moderators: `MODERATION_BLOCKLIST`). Limits are per server process.
+- **Model provider:** `P360_MODEL_PROVIDER=bedrock` (default) | `ollama` (local, free) | `litellm` (OpenAI, Gemini, ...).
+  Same agent code; re-run `ss measure` after switching, because numbers from one model say nothing about another.
 - **Admins** are never self-registered. Register the person normally, then promote them on a trusted machine:
   ```powershell
   cd backend; $env:PYTHONPATH="."; ..\.venv\Scripts\python.exe scripts\make_admin.py person@example.com

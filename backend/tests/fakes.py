@@ -22,6 +22,7 @@ class InMemoryDecisionRepo:
     def list_audit(self, pid): return self.audits.get(pid, [])
     def create_incident(self, ref, doc): self.incidents[ref] = doc
     def get_incident(self, ref): return self.incidents.get(ref)
+    def update_incident(self, ref, fields): self.incidents.setdefault(ref, {}).update(fields)
 
 
 class InMemoryPostRepo:
@@ -36,6 +37,8 @@ class InMemoryPostRepo:
     def recent_for_duplicates(self, locality, since, exclude_id):
         return [p for p in self.posts.values() if p["locality"] == locality and p["id"] != exclude_id and p["createdAt"] >= since]
     def set_decision(self, pid, state, summary): self.posts[pid].update(decisionState=state, decision=summary)
+    def list_review_queue(self, limit=500): return [dict(p) for p in self.posts.values() if (p.get("decision") or {}).get("humanReviewRequired")]
+    def update_review(self, pid, fields): self.posts[pid].update(fields)
     def list_community_opportunities(self, limit=100):
         return sorted([dict(p) for p in self.posts.values() if (p.get("decision") or {}).get("action") == "SUGGEST_COMMUNITY_ACTION"], key=lambda p: p["createdAt"], reverse=True)
     def toggle_like(self, pid, uid):

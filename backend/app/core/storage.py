@@ -5,6 +5,8 @@ Pick one with STORAGE_BACKEND in backend/.env:
            expiring link. Free, no account. Use a persistent disk if you deploy it.
 - s3       any S3-compatible service: Backblaze B2, Cloudflare R2, MinIO, AWS S3 (S3_BUCKET, S3_ENDPOINT_URL, S3_REGION,
            S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY). Pre-signed GET URLs, bucket stays private.
+- cloudinary Cloudinary free plan (no card): CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET. Files are
+           "authenticated" (signed URLs only); links are unguessable but do not expire on the free plan.
 - firebase Firebase Storage (needs the Blaze plan for new projects).
 Every backend implements put / exists / signed_url, so nothing else in the app changes.
 """
@@ -122,6 +124,57 @@ class S3Storage:
             return None
 
 
+class CloudinaryStorage:
+    """Cloudinary (free plan, no card). Every file is uploaded with delivery type "authenticated": the original cannot be
+    opened without a signed URL, which only this backend creates and only for signed-in users.
+
+    Limit to know: Cloudinary's signed URLs are unguessable but NOT time-limited unless you have token-based authentication
+    (a paid feature). So `minutes` is accepted for interface parity and ignored. Anyone who is given a link can keep using it.
+
+    Our paths look like posts/<uid>/<hex>.<ext>; Cloudinary wants public_id without the extension and a resource type."""
+
+    VIDEO = {"mp4", "webm"}
+
+    def __init__(self, cloud_name: str | None, api_key: str | None, api_secret: str | None):
+        if not (cloud_name and api_key and api_secret):
+            raise RuntimeError("Cloudinary needs CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in backend/.env")
+        import cloudinary
+        cloudinary.config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret, secure=True)
+
+    @classmethod
+    def _parts(cls, path: str) -> tuple[str, str, str]:
+        base, _, ext = path.rpartition(".")
+        return base, ext.lower(), ("video" if ext.lower() in cls.VIDEO else "image")
+
+    def put(self, path: str, data: bytes, content_type: str) -> None:
+        import io
+
+        import cloudinary.uploader
+        public_id, _, kind = self._parts(path)
+        cloudinary.uploader.upload(io.BytesIO(data), public_id=public_id, resource_type=kind, type="authenticated",
+                                   overwrite=False, unique_filename=False, use_filename=False)
+
+    def exists(self, path: str) -> bool:
+        import cloudinary.api
+        from cloudinary.exceptions import NotFound
+        public_id, _, kind = self._parts(path)
+        try:
+            cloudinary.api.resource(public_id, resource_type=kind, type="authenticated")
+            return True
+        except NotFound:
+            return False
+
+    def signed_url(self, path: str, minutes: int = 60) -> str | None:
+        import cloudinary.utils
+        public_id, ext, kind = self._parts(path)
+        try:
+            return cloudinary.utils.cloudinary_url(public_id, resource_type=kind, type="authenticated", sign_url=True,
+                                                   secure=True, format=ext)[0]
+        except Exception as e:
+            log.warning("could not sign url for %s: %s", path, type(e).__name__)
+            return None
+
+
 def make_storage():
     kind = settings.storage_backend.lower()
     if kind == "local":
@@ -129,6 +182,8 @@ def make_storage():
     if kind == "s3":
         return S3Storage(settings.s3_bucket, settings.s3_endpoint_url, settings.s3_region,
                          settings.s3_access_key_id, settings.s3_secret_access_key)
+    if kind == "cloudinary":
+        return CloudinaryStorage(settings.cloudinary_cloud_name, settings.cloudinary_api_key, settings.cloudinary_api_secret)
     if kind == "firebase":
         return FirebaseStorage()
-    raise RuntimeError(f"STORAGE_BACKEND must be local, s3 or firebase (got {settings.storage_backend!r})")
+    raise RuntimeError(f"STORAGE_BACKEND must be local, s3, cloudinary or firebase (got {settings.storage_backend!r})")

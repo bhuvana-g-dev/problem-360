@@ -45,6 +45,16 @@ AWS services: Amazon Bedrock (planner, critic, baseline, judge), Amazon Translat
 - **Citations that exist in `agent/data/guidance.json`** (gate: ≥ 95%), **plan complete in the right language** (gate: ≥ 90%),
   **goal success** from the Strands Evals judge (must beat the baseline).
 
+## Human in the loop (after the agent)
+Every `humanReviewRequired` decision (FLAG_URGENT, CHECK_DUPLICATE, ESCALATE, fail-closed) lands in the reviewer queue
+(`backend/app/services/review_service.py`, `/admin/reviews`), danger first. Approve → Acknowledged → Resolved, or close with a
+reason. Each step is audited and the citizen is notified; `minutesToReview` is stored per report, so the time from report to a
+person is measured from real reviews, not estimated.
+
+## Model provider
+`agent/models.py` builds the planner, critic and baseline models from `P360_MODEL_PROVIDER` (bedrock default, ollama, litellm).
+The measured numbers in `results/` are only valid for the provider and model they were measured with.
+
 ## Known limits
 - Thresholds in `agent/config.py` are uncalibrated defaults: tune them on signed cases, then re-run `ss measure`.
 - Danger keywords miss wording they have not seen: u07, u08, u09, u11 have no keyword and depend on the Decider.

@@ -47,7 +47,7 @@ export function RequireVerifiedOrg() {
 export function PublicOnly() {
   const { status, account } = useAuth()
   if (status === 'loading') return <FullPageLoader />
-  if (status === 'ready' && account.accountType !== ACCOUNT_TYPES.ADMIN) return <Navigate to={homeFor(account.accountType)} replace />
+  if (status === 'ready') return <Navigate to={homeFor(account.accountType)} replace />
   return <Outlet />
 }
 

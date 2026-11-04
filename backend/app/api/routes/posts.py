@@ -3,8 +3,10 @@ import mimetypes
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
+from app.core import ratelimit
 from app.core.constants import AccountType
 from app.core.deps import get_decision_service, get_media_service, get_post_service, get_storage
+from app.services import moderation
 from app.core.storage import LocalStorage
 from app.core.security import require_account
 from app.schemas.posts import CommentCreate, PostCreate, PostOut
@@ -16,6 +18,7 @@ anyone = require_account(AccountType.CITIZEN, AccountType.ORGANIZATION, AccountT
 
 @router.post("/media", status_code=status.HTTP_201_CREATED)
 async def upload_media(file: UploadFile = File(...), account: dict = Depends(citizen), media=Depends(get_media_service)):
+    ratelimit.check(account["uid"], "media")
     return await media.upload(account["uid"], file)
 
 
@@ -37,6 +40,7 @@ def list_posts(locality: str | None = None, category: str | None = None, q: str 
 
 @router.post("/posts", response_model=PostOut, status_code=status.HTTP_201_CREATED)
 def create_post(body: PostCreate, bg: BackgroundTasks, account: dict = Depends(citizen), svc=Depends(get_post_service), decide=Depends(get_decision_service)):
+    ratelimit.check(account["uid"], "post")
     post_id = svc.create(account, body)
     bg.add_task(decide.run, post_id)  # the Strands agent runs after the response; the UI polls decisionState
     return svc.get_out(account, post_id)
@@ -54,6 +58,7 @@ def get_post(post_id: str, account: dict = Depends(anyone), svc=Depends(get_post
 
 @router.post("/posts/{post_id}/like")
 def like(post_id: str, account: dict = Depends(citizen), svc=Depends(get_post_service)):
+    ratelimit.check(account["uid"], "like")
     return svc.like(account, post_id)
 
 
@@ -64,6 +69,8 @@ def comments(post_id: str, account: dict = Depends(anyone), svc=Depends(get_post
 
 @router.post("/posts/{post_id}/comments", status_code=status.HTTP_201_CREATED)
 def add_comment(post_id: str, body: CommentCreate, account: dict = Depends(citizen), svc=Depends(get_post_service)):
+    moderation.check_comment(body.text)          # rejected comments are never stored
+    ratelimit.check(account["uid"], "comment")
     return svc.add_comment(account, post_id, body.text)
 
 

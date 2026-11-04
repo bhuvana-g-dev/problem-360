@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     local_media_dir: str = str(_BACKEND / "uploads")
     media_signing_secret: str | None = None       # any long random string; keeps local media links valid across restarts
     public_base_url: str = "http://localhost:8000"  # how browsers reach this API (used in local media links)
+    cloudinary_cloud_name: str | None = None
+    cloudinary_api_key: str | None = None
+    cloudinary_api_secret: str | None = None
     s3_bucket: str | None = None
     s3_endpoint_url: str | None = None            # e.g. https://s3.us-west-004.backblazeb2.com ; empty for AWS S3
     s3_region: str | None = None

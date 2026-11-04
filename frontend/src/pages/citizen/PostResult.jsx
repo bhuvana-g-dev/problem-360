@@ -5,11 +5,14 @@ import PostCard from '../../components/feed/PostCard.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Card from '../../components/ui/Card.jsx'
 import { getDecisionTrace, getPost } from '../../services/posts.js'
+import { useT } from '../../i18n/LangContext.jsx'
+import LocationPreview from '../../components/feed/LocationPreview.jsx'
 
 const pretty = (o) => JSON.stringify(o, null, 1).replace(/[{}"]/g, '').replace(/,\n/g, '\n').trim()
 
 /** Report detail: the post with its live Strands decision, plus the recorded tool runs and audit trail. */
 export default function PostResult() {
+  const { t } = useT()
   const { id } = useParams()
   const [post, setPost] = useState(null)
   const [error, setError] = useState('')
@@ -30,10 +33,19 @@ export default function PostResult() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <Link to="/app" className="inline-flex items-center gap-1 text-sm text-brand hover:underline"><ArrowLeft className="h-4 w-4" />Back to feed</Link>
+      <Link to="/app" className="inline-flex items-center gap-1 text-sm text-brand hover:underline"><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t('nav.backToFeed')}</Link>
       {error && <Alert tone="error" title="Couldn’t load this report">{error}</Alert>}
       {!post && !error && <p role="status" className="text-sm text-ink/60">Loading…</p>}
       {post && <PostCard key={post.id + post.decisionState} post={post} />}
+      {post?.coordinates && <Card><h2 className="mb-2 text-lg">{t('geo.coords')}</h2><LocationPreview coords={post.coordinates} map /></Card>}
+      {post?.decision?.humanReviewRequired && (
+        <Alert tone={post.review ? 'info' : 'warning'} title={t(post.review ? 'rv.checked' : 'rv.waiting')}>
+          {!post.review && t('rv.waitingText')}
+          {post.review?.state === 'approved' && t(post.status === 'Resolved' ? 'rv.ackResolved' : 'rv.ack')}
+          {post.review?.state === 'rejected' && t('rv.closed')}
+          {post.review?.note && ` ${t('rv.note')} ${post.review.note}`}
+        </Alert>
+      )}
       {traceError && <Alert tone="info">{traceError}</Alert>}
       {trace && (
         <Card>

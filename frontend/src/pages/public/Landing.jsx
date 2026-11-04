@@ -36,6 +36,7 @@ export default function Landing() {
             text="Run volunteer groups and events. Management tools unlock after verification."
             login={ROUTES.orgLogin} register={ROUTES.orgRegister} />
         </div>
+        <p className="mt-8 text-sm text-ink/55">Problem 360 reviewer? <Link to={ROUTES.adminLogin} className="font-medium text-brand hover:underline">Reviewer login</Link></p>
       </main>
     </div>
   )

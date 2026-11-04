@@ -6,9 +6,11 @@ const statusStyles = {
   'Under Review': 'bg-info/10 text-info',
   Assigned: 'bg-info/10 text-info',
   'In Progress': 'bg-gold/20 text-ink',
+  Acknowledged: 'bg-info/10 text-info',
   Resolved: 'bg-leaf/20 text-brand',
   Verified: 'bg-brand text-white',
   Reopened: 'bg-red-100 text-red-700',
+  Rejected: 'bg-ink/10 text-ink/70',
 }
 
 /** Issue lifecycle badge (Submitted → Under Review → Assigned → In Progress → Resolved → Verified, or Reopened). */

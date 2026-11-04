@@ -17,6 +17,7 @@ from app.services.decision_service import DecisionService
 from app.services.org_service import OrgService
 from app.services.media_service import MediaService
 from app.services.post_service import PostService
+from app.services.review_service import ReviewService
 
 _ROOT = Path(__file__).resolve().parents[3]  # repo root holds the `agent/` package (kept separate from the API)
 if str(_ROOT) not in sys.path:
@@ -69,3 +70,7 @@ def get_community_service(community=Depends(get_community_repo), posts=Depends(g
 
 def get_admin_service(accounts=Depends(get_account_repo), posts=Depends(get_post_repo)):
     return AdminService(accounts, posts)
+
+
+def get_review_service(posts=Depends(get_post_repo), decisions=Depends(get_decision_repo)):
+    return ReviewService(posts, decisions)

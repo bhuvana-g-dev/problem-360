@@ -24,12 +24,12 @@ import sys
 import time
 
 from strands import Agent
-from strands.models import BedrockModel
 from strands.multiagent import GraphBuilder
 
 from . import config, safety
 from .decider_client import DeciderClient
 from .enforce import decide_final, finalize, fixed_summary, is_vague, to_plan
+from .models import make_model, model_label
 from .plan import Critique
 from .schemas import Action, AgentChoice
 from .tools import RunContext, build_tools, compute_facts, has_tamil, language_of, translate_to_tamil
@@ -67,7 +67,7 @@ Otherwise ok=true with no problems. Do not rewrite the answer."""
 
 
 def _model():
-    return BedrockModel(model_id=config.MODEL_ID, region_name=config.REGION, temperature=0.2)
+    return make_model(0.2)   # provider from P360_MODEL_PROVIDER (agent/models.py); Bedrock by default
 
 
 def _task(ctx: RunContext, lang: str) -> str:
@@ -170,7 +170,7 @@ def review(report: dict, nearby_provider, decider=None, model_factory=None, lang
         if lang == "ta":
             summary, questions = _to_tamil(summary, questions, action, ctx, meta)
         decision, more = finalize(action, summary, choice.reasoning, questions, overrides, list(choice.citations), ctx, lang,
-                                  config.MODEL_ID, "strands_agent")
+                                  model_label(), "strands_agent")
         decision["critic"] = {"ok": meta["critic_ok"], "passes": meta["passes"], "problems": meta["critic_problems"]}
         meta["fixed"] += more
         meta["overrides"] = overrides

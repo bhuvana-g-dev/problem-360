@@ -46,6 +46,15 @@ class PostRepository:
     def set_decision(self, post_id: str, state: str, summary: dict | None) -> None:
         self._posts().document(post_id).update({"decisionState": state, "decision": summary, "updatedAt": now()})
 
+    # ---- human review queue ----
+    def list_review_queue(self, limit: int = 500) -> list[dict]:
+        """Every report the agent (or the fail-closed fallback) marked for a person. Equality filter only: no composite index."""
+        q = self._posts().where("decision.humanReviewRequired", "==", True).limit(limit)
+        return [{**s.to_dict(), "id": s.id} for s in q.stream()]
+
+    def update_review(self, post_id: str, fields: dict) -> None:
+        self._posts().document(post_id).update({**fields, "updatedAt": now()})
+
     # ---- likes ----
     def toggle_like(self, post_id: str, uid: str) -> dict | None:
         post_ref = self._posts().document(post_id)
